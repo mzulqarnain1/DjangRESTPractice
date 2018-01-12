@@ -1,149 +1,94 @@
-from django.http import Http404
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.contrib.auth.models import User
+from rest_framework import generics
+from rest_framework import permissions
 
 from api.models import Property, PropertyType, Status
-from api.serializers import PropertySerializer, PropertyTypeSerializer,  StatusSerializer
+from api.permissions import IsOwnerOrReadOnly, IsSelf
+from api.serializers import (PropertySerializer, PropertyTypeSerializer,
+                             StatusSerializer, UserSerializer)
 
 
-@csrf_exempt
-@api_view(['GET', 'POST'])
-def property_list(request):
+class PropertyList(generics.ListCreateAPIView):
     """
-    List all code Property, or create a new Property.
+    This view handles request for returning a list of properties
+    or creating a new property.
     """
-    if request.method == 'GET':
-        propertys = Property.objects.all()
-        serializer = PropertySerializer(propertys, many=True)
-        return Response(serializer.data)
+    permission_classes = (permissions.IsAuthenticated,
+                          IsOwnerOrReadOnly,)
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
 
-    elif request.method == 'POST':
-        serializer = PropertySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
-@csrf_exempt
-@api_view(['GET', 'DELETE', 'PUT'])
-def property_detail(request, pk):
+class PropertyDetail(generics.RetrieveUpdateDestroyAPIView):
     """
-    :param request:
-    :return:
+    This endpoint handles retrieval, updation and deletion
+    of specific property object.
     """
-    try:
-        property = Property.objects.get(pk=pk)
-    except Property.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = PropertySerializer(property)
-        return Response(serializer.data)
-
-    elif request.method == 'DELETE':
-        property.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    elif request.method == 'PUT':
-        serializer = PropertySerializer(property, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    permission_classes = (permissions.IsAuthenticated,
+                          IsOwnerOrReadOnly,)
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
 
 
-@csrf_exempt
-@api_view(['GET', 'POST'])
-def status_list(request):
+class StatusList(generics.ListAPIView):
     """
-    List all code Status, or create a new Status.
+    This view handles request for returning a list of statuses
+    or creating a new status.
     """
-    if request.method == 'GET':
-        property_status = Status.objects.all()
-        serializer = StatusSerializer(property_status, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = StatusSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
 
 
-@csrf_exempt
-@api_view(['GET', 'DELETE', 'PUT'])
-def status_detail(request, pk):
+class StatusDetail(generics.RetrieveAPIView):
     """
-    :param request:
-    :return:
+    This endpoint handles retrieval, updation and deletion
+    of specific status object.
     """
-    try:
-        property_status = Status.objects.get(pk=pk)
-    except Status.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = StatusSerializer(property_status)
-        return Response(serializer.data)
-
-    elif request.method == 'DELETE':
-        property_status.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    elif request.method == 'PUT':
-        serializer = StatusSerializer(property_status, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
 
 
-class PropertyTypeList(APIView):
+class PropertyTypeList(generics.ListAPIView):
     """
-    List all snippets, or create a new snippet.
+    This view handles request for returning a list of types
+    or creating a new type.
     """
-    def get(self, request):
-        types = PropertyType.objects.all()
-        serializer = PropertyTypeSerializer(types, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        serializer = PropertyTypeSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    queryset = PropertyType.objects.all()
+    serializer_class = PropertyTypeSerializer
 
 
-class PropertyTypeDetail(APIView):
+class PropertyTypeDetail(generics.RetrieveAPIView):
     """
-    Retrieve, update or delete a snippet instance.
+    This endpoint handles retrieval, updation and deletion
+    of specific property type object.
     """
-    def get_object(self, pk):
-        try:
-            return PropertyType.objects.get(pk=pk)
-        except PropertyType.DoesNotExist:
-            raise Http404
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    queryset = PropertyType.objects.all()
+    serializer_class = PropertyTypeSerializer
 
-    def get(self, request, pk):
-        snippet = self.get_object(pk)
-        serializer = PropertyTypeSerializer(snippet)
-        return Response(serializer.data)
 
-    def put(self, request, pk):
-        snippet = self.get_object(pk)
-        serializer = PropertyTypeSerializer(snippet, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class UserList(generics.ListAPIView):
+    """
+    This view handles request for returning a list of users.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
-    def delete(self, request, pk):
-        snippet = self.get_object(pk)
-        snippet.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class UserDetail(generics.RetrieveUpdateDestroyAPIView):
+    """
+    This endpoint handles retrieval, updation and deletion
+    of specific user object if and only if it is user's own
+    profile.
+    """
+    permission_classes = (permissions.IsAuthenticated,
+                          IsSelf)
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
