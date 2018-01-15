@@ -1,0 +1,8 @@
+PROPERTY_LIST_ENDPOINT = '/api/property/'
+PROPERTY_ENDPOINT = '/api/property/{}/'
+STATUS_ENDPOINT = '/api/status/'
+STATUS_ENDPOINT_2 = '/api/status/{}/'
+TYPE_ENDPOINT = '/api/type/'
+TYPE_ENDPOINT_2 = '/api/type/{}'
+USERS_ENDPOINT = '/api/users/'
+USER_ENDPOINT = '/api/users/{}/'
