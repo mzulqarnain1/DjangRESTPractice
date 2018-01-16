@@ -1,0 +1,49 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" type="text/css" href="{% static 'interface/bootstrap/css/bootstrap.css' %}"/>
+    <!-- Website CSS style -->
+    <link rel="stylesheet" type="text/css" href="{% static 'interface/css/main.css' %}"/>
+    <title>Sign In</title>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+    <div class="col-sm-5">
+        <h2>Sign Up</h2>
+    <form id="sign-up" method="post" action="">
+        {% csrf_token %}
+    <ul>
+        {% for field in form %}
+            <li>
+                {{ field.label_tag }} {{ field }}
+                {{ field.errors }}
+            </li>
+        {% endfor %}
+    </ul>
+    <br/><input type="submit" value="Sign Up" class="btn btn-default">
+    </form>
+    </div><div class="col-sm-2"></div>
+    <div class="col-sm-5">
+        <h2>Login</h2>
+    <form id="log-in" method="post" action="/interface/login/">
+        {% csrf_token %}
+    <ul>
+        {% for field in loginform %}
+            <li>
+                {{ field.label_tag }} {{ field }}
+                {{ field.errors }}
+            </li>
+        {% endfor %}
+    </ul>
+    <br/><input type="submit" value="Login" class="btn btn-default">
+    </form>
+    </div>
+    </div>
+</div>
+
+    <script type="text/javascript" src="{% static 'interface/bootstrap/js/bootstrap.min.js' %}"></script>
+	</body>
+</html>
