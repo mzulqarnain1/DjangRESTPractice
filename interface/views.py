@@ -1,5 +1,7 @@
 """
-
+This module handles all the views for our interface
+for user registration/login and user's properties
+add/edit.
 """
 from django.http.response import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
@@ -11,8 +13,6 @@ from interface.forms import UserSignUpForm, AuthenticationForm, PropertyForm
 
 def index(request):
     """
-
-    :return:
     """
     if 'user' in request.session:
         return redirect('properties_list')
@@ -25,7 +25,10 @@ def index(request):
         form = UserSignUpForm(request.POST)
         if form.is_valid():
             form.save()
-            return HttpResponse('Saved')
+            form = UserSignUpForm()
+            return HttpResponse(template.render(dict(form=form, loginform=auth_form,
+                                                     message='Signed Up Successfully. Kindly'
+                                                             ' Login'), request))
         else:
             return HttpResponse(template.render(dict(form=form, loginform=auth_form), request))
     else:
@@ -34,9 +37,6 @@ def index(request):
 
 def login(request):
     """
-
-    :param request:
-    :return:
     """
     if 'user' in request:
         return redirect('properties_list')
@@ -46,42 +46,34 @@ def login(request):
         form = AuthenticationForm(data=request.POST)
         if form.is_valid():
             request.session['user'] = form.get_user_id()
-            return HttpResponse('Login')
+            return redirect('properties_list')
         else:
             return HttpResponse(template.render(dict(form=register_form, loginform=form), request))
     else:
-        return HttpResponse('Not Allowed')
+        return HttpResponse(HttpResponseForbidden)
 
 
 def logout(request):
     """
-
-    :param request:
-    :return:
     """
     if 'user' not in request.session:
         return HttpResponse('Not Login')
-
     del request.session['user']
-    return HttpResponse('Logged Out')
+
+    return redirect('index')
 
 
 def properties_list(request):
     """
-
-    :param request:
-    :return:
     """
     props = Property.objects.all()
+    template = loader.get_template('interface/list.html')
 
-    return HttpResponse(props)
+    return HttpResponse(template.render(dict(properties=props), request))
 
 
 def property_edit(request, pk):
     """
-
-    :param request:
-    :return:
     """
     prop = Property.objects.get(pk=pk)
     if request.session['user'] != prop.owner_id:
@@ -90,24 +82,28 @@ def property_edit(request, pk):
     form = PropertyForm(request.POST or None, instance=prop)
     if form.is_valid():
         form.save()
-        return HttpResponse('Saved')
+        props = Property.objects.all()
+        template = loader.get_template('interface/list.html')
+
+        return HttpResponse(template.render(dict(properties=props, message='Property Updated'), request))
     else:
         return HttpResponse(template.render(dict(form=form), request))
 
 
 def property(request):
     """
-
-    :param request:
-    :return:
     """
-
+    if 'user' not in request.session:
+        return redirect('index')
     template = loader.get_template('interface/property.html')
     form = PropertyForm(request.POST or None)
     if form.is_valid():
         prop = Property(**form.cleaned_data)
         prop.owner_id = request.session['user']
         prop.save()
-        return HttpResponse('Saved')
+        props = Property.objects.all()
+        template = loader.get_template('interface/list.html')
+
+        return HttpResponse(template.render(dict(properties=props, message='Property Saved'), request))
     else:
         return HttpResponse(template.render(dict(form=form), request))

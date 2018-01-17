@@ -83,11 +83,7 @@ class AuthenticationForm(forms.Form):
             self.user_cache = authenticate(username=username,
                                            password=password)
             if self.user_cache is None:
-                raise forms.ValidationError(
-                    self.error_messages['invalid_login'],
-                    code='invalid_login',
-                    params={'username': self.username_field.verbose_name},
-                )
+                self.add_error('password', 'Username or Password Incorrect')
             else:
                 self.confirm_login_allowed(self.user_cache)
 
@@ -105,10 +101,7 @@ class AuthenticationForm(forms.Form):
         If the given user may log in, this method should return None.
         """
         if not user.is_active:
-            raise forms.ValidationError(
-                self.error_messages['inactive'],
-                code='inactive',
-            )
+            self.add_error('password', 'Your account is deactivated')
 
     def get_user_id(self):
         if self.user_cache:
