@@ -19,8 +19,12 @@ from interface import views
 urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^login/', views.login, name='login'),
+    url(r'^logout', views.logout, name='logout'),
     url(r'^logout/', views.logout, name='logout'),
+    url(r'^logout', views.logout, name='logout'),
     url(r'^properties_list/', views.properties_list, name='properties_list'),
     url(r'^property/', views.property, name='property'),
     url(r'^property_edit/(?P<pk>[0-9]+)', views.property_edit, name='property-detail'),
+    url(r'^property_delete/(?P<key>[0-9]+)', views.property_delete, name='property_delete'),
+    url(r'^contact/', views.contact, name='contact'),
 ]

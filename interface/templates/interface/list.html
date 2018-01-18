@@ -40,6 +40,9 @@
                     <a class="nav-link" href="{% url 'index' %}">Login/Register</a>
                 </li>
             {% endif %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'contact' %}">Contact Us</a>
+            </li>
         </ul>
     </div>
 </nav>
@@ -66,6 +69,7 @@
                     <th class="text-info">Parent Property</th>
                     <th class="text-info">Owner</th>
                     <th class="text-info">Edit</th>
+                    <th class="text-info">Delete</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -83,7 +87,14 @@
                         {% endif %}
 
                         {% if prop.owner.id == request.session.user %}
-                            <td><a class="btn btn-danger" href="{% url 'property-detail' prop.id %}">Edit</a></td>
+                            <td><a class="btn btn-warning" href="{% url 'property-detail' prop.id %}">Edit</a></td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
+
+                        {% if prop.owner.id == request.session.user %}
+                            <td><a class="btn btn-danger" href="{% url 'property_delete' prop.id %}"
+                                   onclick="return confirm('Are you sure?')">Delete</a></td>
                         {% else %}
                             <td></td>
                         {% endif %}
@@ -96,5 +107,9 @@
 
 </main>
 <link rel="stylesheet" href="{% static 'interface/css/main.css' %}"/>
+
 </body>
+<div class="footer">
+    <a href="{% url 'contact' %}">Contact Us</a>
+</div>
 </html>

@@ -37,6 +37,7 @@ urlpatterns = [
     url(r'^users/(?P<pk>[0-9]+)/$', views.UserDetail.as_view(), name='users-details'),
     url(r'^users/$', views.UserList.as_view(), name='users-list'),
     url(r'^schema/$', schema_view),
+    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
 
 urlpatterns += [

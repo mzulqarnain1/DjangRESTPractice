@@ -1,10 +1,10 @@
-
 from django import forms
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import User
 from django.utils.text import capfirst
 
 from api.models import Property
+from .models import Contact
 
 
 class UserSignUpForm(forms.ModelForm):
@@ -119,3 +119,12 @@ class PropertyForm(forms.ModelForm):
     class Meta:
         model = Property
         fields = ('address', 'type', 'status', 'parentProperty')
+
+
+class ContactForm(forms.ModelForm):
+    """
+
+    """
+    class Meta:
+        model = Contact
+        fields = ('subject', 'message')

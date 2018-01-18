@@ -15,14 +15,17 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
             integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
             crossorigin="anonymous"></script>
-    <title>Add Property</title>
+    <title>Contact</title>
 </head>
 <body>
 
 <div class="container">
+    {% if message %}
+        <h4 class="top-message" style="color:green">{{ message }}</h4>
+    {% endif %}
     <div class="row">
         <div class="col-sm-5">
-            <h2>Add Property</h2>
+            <h2>Contact Us</h2>
             <form id="sign-up" method="post" action="">
                 {% csrf_token %}
                 {{ form|as_bootstrap }}
@@ -31,7 +34,6 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" src="{% static 'interface/bootstrap/js/bootstrap.min.js' %}"></script>
 <link rel="stylesheet" href="{% static 'interface/css/main.css' %}"/>
 </body>
 </html>

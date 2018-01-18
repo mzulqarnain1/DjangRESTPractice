@@ -3,19 +3,22 @@ This module handles all the views for our interface
 for user registration/login and user's properties
 add/edit.
 """
-from django.http.response import HttpResponse, HttpResponseForbidden
+from django.http.response import (HttpResponse, HttpResponseForbidden,
+                                  HttpResponseNotFound, HttpResponseBadRequest,
+                                  HttpResponseNotAllowed)
 from django.shortcuts import redirect
 from django.template import loader
 
 from api.models import Property
-from interface.forms import UserSignUpForm, AuthenticationForm, PropertyForm
+from interface.forms import (UserSignUpForm, AuthenticationForm,
+                             PropertyForm, ContactForm)
+from .decorators import login_required, not_already_login
 
 
+@not_already_login
 def index(request):
     """
     """
-    if 'user' in request.session:
-        return redirect('properties_list')
     template = loader.get_template('interface/index.html')
     auth_form = AuthenticationForm()
     if request.method == 'GET':
@@ -32,14 +35,13 @@ def index(request):
         else:
             return HttpResponse(template.render(dict(form=form, loginform=auth_form), request))
     else:
-        return HttpResponse('Not Allowed')
+        return HttpResponseNotAllowed()
 
 
+@not_already_login
 def login(request):
     """
     """
-    if 'user' in request:
-        return redirect('properties_list')
     template = loader.get_template('interface/index.html')
     register_form = UserSignUpForm()
     if request.method == 'POST':
@@ -53,14 +55,36 @@ def login(request):
         return HttpResponse(HttpResponseForbidden)
 
 
+@login_required
 def logout(request):
     """
     """
-    if 'user' not in request.session:
-        return HttpResponse('Not Login')
     del request.session['user']
 
     return redirect('index')
+
+
+@login_required
+def property_delete(request, key):
+    """
+    """
+    try:
+        prop = Property.objects.get(pk=key)
+    except Property.DoesNotExist:
+        return HttpResponseNotFound()
+    except Exception:
+        return HttpResponseBadRequest()
+
+    if prop.owner_id == request.session['user']:
+        prop.delete()
+        props = Property.objects.all()
+        template = loader.get_template('interface/list.html')
+
+        return HttpResponse(template.render(
+            dict(properties=props, message='Property Deleted'),
+            request))
+    else:
+        return HttpResponseForbidden()
 
 
 def properties_list(request):
@@ -72,6 +96,7 @@ def properties_list(request):
     return HttpResponse(template.render(dict(properties=props), request))
 
 
+@login_required
 def property_edit(request, pk):
     """
     """
@@ -90,11 +115,10 @@ def property_edit(request, pk):
         return HttpResponse(template.render(dict(form=form), request))
 
 
+@login_required
 def property(request):
     """
     """
-    if 'user' not in request.session:
-        return redirect('index')
     template = loader.get_template('interface/property.html')
     form = PropertyForm(request.POST or None)
     if form.is_valid():
@@ -107,3 +131,24 @@ def property(request):
         return HttpResponse(template.render(dict(properties=props, message='Property Saved'), request))
     else:
         return HttpResponse(template.render(dict(form=form), request))
+
+
+@login_required
+def contact(request):
+    """
+
+    :param request:
+    :return:
+    """
+    template = loader.get_template('interface/contact.html')
+    form = ContactForm(request.POST or None)
+
+    if form.is_valid():
+        form.instance.user_id = request.session['user']
+        form.save()
+        form = ContactForm()
+        return HttpResponse(template.render(
+            dict(form=form, message='Message Sent'), request))
+    else:
+        return HttpResponse(template.render(
+            dict(form=form), request))
