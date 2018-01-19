@@ -2,8 +2,12 @@
 This module contains tests for all of our API endpoints on different scenarios,
 of GET, POST, PUT and DELETE.
 """
+import unittest
+from datetime import datetime, timedelta
+
 import mock
 from django.contrib.auth.models import User
+from oauth2_provider.models import Application, AccessToken
 from rest_framework import status
 from rest_framework.test import APIClient
 from testscenarios import TestWithScenarios
@@ -12,7 +16,55 @@ from api import test_constants
 from api.models import Property, PropertyType, Status
 
 
-class TestGETMethodsOfViews(TestWithScenarios):
+class BaseTests(unittest.TestCase):
+    """
+
+    """
+    def __init__(self, *args, **kwargs):
+        """
+        """
+        super(BaseTests, self).__init__(*args, **kwargs)
+        self.login = False
+        self.client = None
+        self.user = None
+        self.app = None
+        self.other_user = False
+
+    def setUp(self):
+        """
+        """
+        self.user = User.objects.create_user(
+            username='testuser', password='12345arbi')
+
+        if self.other_user:
+            self.user_2 = User.objects.create_user(
+                username='testuser2', password='12345')
+
+        self.client = APIClient()
+
+        if self.login:
+            self.app = Application(client_type=Application.CLIENT_CONFIDENTIAL,
+                                   authorization_grant_type=Application.GRANT_PASSWORD,
+                                   name='test_api')
+
+            self.token = AccessToken(application_id=self.app.id,
+                                     user_id=self.user.id,
+                                     expires=datetime.now() + timedelta(seconds=3600))
+            self.app.save()
+
+            self.client.force_authenticate(user=self.user, token=self.token.token)
+
+    def tearDown(self):
+        """
+        """
+        if self.app:
+            self.app.delete()
+        if self.other_user:
+            self.user_2.delete()
+        self.user.delete()
+
+
+class TestGETMethodsOfViews(TestWithScenarios, BaseTests):
     """
     In this class we will test our property list endpoint with different scenarios
     and assert that we are getting responses according to our expectations.
@@ -29,7 +81,7 @@ class TestGETMethodsOfViews(TestWithScenarios):
                               view, so access will be forbidden and response will be 403.""",
             'end_point': test_constants.PROPERTY_LIST_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario3', {
             'description': """In this scenario , we will login and access specific property endpoint
                               and we will get response 200""",
@@ -41,7 +93,7 @@ class TestGETMethodsOfViews(TestWithScenarios):
                               view, so access will be forbidden and response will be 403.""",
             'end_point': test_constants.PROPERTY_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario5', {
             'description': """In this scenario , user will be hitting status list endpoint, so response
                               will be OK.""",
@@ -59,7 +111,7 @@ class TestGETMethodsOfViews(TestWithScenarios):
                               request will be forbidden.""",
             'end_point': test_constants.USERS_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario8', {
             'description': """In this scenario, user is hitting users list endpoint with login, so
                               request will be Ok.""",
@@ -71,7 +123,7 @@ class TestGETMethodsOfViews(TestWithScenarios):
                               request will be forbidden.""",
             'end_point': test_constants.USER_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario10', {
             'description':  """In this scenario, user is hitting user retrieval endpoint with login, so
                               request will be OK.""",
@@ -97,7 +149,6 @@ class TestGETMethodsOfViews(TestWithScenarios):
         Initializing different variables to be used in testing
         """
         super(TestGETMethodsOfViews, self).__init__(*args, **kwargs)
-        self.login = False
         self.expected_response = None
         self._property = None
         self.end_point = None
@@ -108,12 +159,7 @@ class TestGETMethodsOfViews(TestWithScenarios):
         """
         In setup method we will create objects required for testing.
         """
-        self.user = User.objects.create_user(
-            username='testuser', password='12345arbi')
-        self.client = APIClient()
-
-        if self.login:
-            self.client._login(user=self.user)
+        super(TestGETMethodsOfViews, self).setUp()
 
         if self.end_point == test_constants.PROPERTY_ENDPOINT:
             _property = Property(address='Testing Address',
@@ -153,10 +199,11 @@ class TestGETMethodsOfViews(TestWithScenarios):
             self._type.delete()
         if self._status:
             self._status.delete()
-        self.user.delete()
+
+        super(TestGETMethodsOfViews, self).tearDown()
 
 
-class TestPOSTPropertyView(TestWithScenarios):
+class TestPOSTPropertyView(TestWithScenarios, BaseTests):
     """
     In this class we will test our property list endpoint with different scenarios
     and assert that we are getting responses according to our expectations.
@@ -168,7 +215,7 @@ class TestPOSTPropertyView(TestWithScenarios):
             'data': {'address': 'Test', 'type': 1, 'status': 2},
             'end_point': test_constants.PROPERTY_LIST_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario2', {
             'description': """In this scenario, user is login and data is complete
                               so a new object will be created.""",
@@ -193,7 +240,6 @@ class TestPOSTPropertyView(TestWithScenarios):
         Initializing different variables to be used in testing
         """
         super(TestPOSTPropertyView, self).__init__(*args, **kwargs)
-        self.login = False
         self.expected_response = None
         self.end_point = None
         self.data = None
@@ -205,13 +251,7 @@ class TestPOSTPropertyView(TestWithScenarios):
         """
         In setup method we will create objects required for testing.
         """
-        self.user = User.objects.create_user(
-            username='testuser', password='12345arbi')
-        self.client = APIClient()
-
-        if self.login:
-            self.client._login(user=self.user)
-
+        super(TestPOSTPropertyView, self).setUp()
         self.prop_status = Status(name='To Rent')
         self.prop_status.save()
         self.prop_type = PropertyType(name='Flat')
@@ -241,10 +281,11 @@ class TestPOSTPropertyView(TestWithScenarios):
         """
         self.prop_type.delete()
         self.prop_status.delete()
-        self.user.delete()
+
+        super(TestPOSTPropertyView, self).tearDown()
 
 
-class TestPUTPropertyView(TestWithScenarios):
+class TestPUTPropertyView(TestWithScenarios, BaseTests):
     """
     In this class we will test our property list endpoint with different scenarios
     and assert that we are getting responses according to our expectations.
@@ -256,7 +297,7 @@ class TestPUTPropertyView(TestWithScenarios):
             'data': {'address': 'Test-Update', 'type': 1, 'status': 2},
             'end_point': test_constants.PROPERTY_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario2', {
             'description': """In this scenario, user is login and data is complete
                               so object will be updated.""",
@@ -281,7 +322,6 @@ class TestPUTPropertyView(TestWithScenarios):
         Initializing different variables to be used in testing
         """
         super(TestPUTPropertyView, self).__init__(*args, **kwargs)
-        self.login = False
         self.expected_response = None
         self.end_point = None
         self.data = None
@@ -293,12 +333,8 @@ class TestPUTPropertyView(TestWithScenarios):
         """
         In setup method we will create objects required for testing.
         """
-        self.user = User.objects.create_user(
-            username='testuser', password='12345arbi')
-        self.client = APIClient()
+        super(TestPUTPropertyView, self).setUp()
 
-        if self.login:
-            self.client._login(user=self.user)
         self.prop_status = Status(name='To Rent')
         self.prop_status.save()
         self.prop_type = PropertyType(name='Flat')
@@ -332,12 +368,12 @@ class TestPUTPropertyView(TestWithScenarios):
         """
         self.prop_type.delete()
         self.prop_status.delete()
-        self.client.logout()
         self._property.delete()
-        self.user.delete()
+
+        super(TestPUTPropertyView, self).tearDown()
 
 
-class TestDELETEPropertyView(TestWithScenarios):
+class TestDELETEPropertyView(TestWithScenarios, BaseTests):
     """
     In this class we will test our property list endpoint with different scenarios
     and assert that we are getting responses according to our expectations.
@@ -348,7 +384,7 @@ class TestDELETEPropertyView(TestWithScenarios):
                               without login, so request will be forbidden""",
             'end_point': test_constants.PROPERTY_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario2', {
             'description': """In this scenario, we are deleting a property after login
                               and login user is original owner, so property will be
@@ -371,26 +407,15 @@ class TestDELETEPropertyView(TestWithScenarios):
         Initializing different variables to be used in testing
         """
         super(TestDELETEPropertyView, self).__init__(*args, **kwargs)
-        self.login = False
         self.expected_response = None
         self.end_point = None
         self.expected_delete = 0
-        self.other_user = None
 
     def setUp(self):
         """
         In setup method we will create objects required for testing.
         """
-        self.user = User.objects.create_user(
-            username='testuser', password='12345arbi')
-
-        if self.other_user:
-            self.user_2 = User.objects.create_user(
-                username='testuser2', password='12345')
-        self.client = APIClient()
-
-        if self.login:
-            self.client._login(user=self.user)
+        super(TestDELETEPropertyView, self).setUp()
 
         if self.other_user:
             user_id = self.user_2.id
@@ -416,14 +441,11 @@ class TestDELETEPropertyView(TestWithScenarios):
         """
         Deleting objects created for testing purposes.
         """
-        self.client.logout()
         self._property.delete()
-        if self.other_user:
-            self.user_2.delete()
-        self.user.delete()
+        super(TestDELETEPropertyView, self).tearDown()
 
 
-class TestDeleteUpdateUserView(TestWithScenarios):
+class TestDeleteUpdateUserView(TestWithScenarios, BaseTests):
     """
     In this class we will test our property list endpoint with different scenarios
     and assert that we are getting responses according to our expectations.
@@ -434,7 +456,7 @@ class TestDeleteUpdateUserView(TestWithScenarios):
                               without login, so request will be forbidden""",
             'end_point': test_constants.USER_ENDPOINT,
             'login': False,
-            'expected_response': status.HTTP_403_FORBIDDEN}),
+            'expected_response': status.HTTP_401_UNAUTHORIZED}),
         ('scenario2', {
             'description': """In this scenario, we are deleting a user after login
                               and login user is target user, so user will be
@@ -457,26 +479,15 @@ class TestDeleteUpdateUserView(TestWithScenarios):
         Initializing different variables to be used in testing
         """
         super(TestDeleteUpdateUserView, self).__init__(*args, **kwargs)
-        self.login = False
         self.expected_response = None
         self.end_point = None
         self.expected_delete = 0
-        self.other_user = None
 
     def setUp(self):
         """
         In setup method we will create objects required for testing.
         """
-        self.user = User.objects.create_user(
-            username='testuser', password='12345arbi')
-
-        if self.other_user:
-            self.user_2 = User.objects.create_user(
-                username='testuser2', password='12345')
-        self.client = APIClient()
-
-        if self.login:
-            self.client._login(user=self.user)
+        super(TestDeleteUpdateUserView, self).setUp()
 
         if self.other_user:
             user_id = self.user_2.id
@@ -499,8 +510,4 @@ class TestDeleteUpdateUserView(TestWithScenarios):
         """
         Deleting objects created for testing purposes.
         """
-        self.client.logout()
-        if self.other_user:
-            self.user_2.delete()
-        self.user.delete()
-
+        super(TestDeleteUpdateUserView, self).tearDown()
